@@ -15,6 +15,6 @@ app.get('/', function (req, res) {
 
 app.use('/notifications', notifications)
 
-app.listen(8000, '0.0.0.0', function () {
-  console.log('Listening to Port 8000')
+app.listen(3000, '0.0.0.0', function () {
+  console.log('Listening to Port 3000')
 })
