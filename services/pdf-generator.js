@@ -1,32 +1,45 @@
-const PDFGenerator = require("pdfkit")
+const PDFDocument = require("pdfkit/js/pdfkit")
 const fs = require("fs")
 const path = require("path")
 
 const BOLD_FONT = "Helvetica-Bold"
 const NORMAL_FONT = "Helvetica"
 
+console.log("PDF_GENERATOR", PDFDocument)
+
 class PdfGenerator {
-  constructor(invoice) {
-    this.invoice = invoice
+  constructor() {
     this.startPositionY = 130
+    const date = new Date()
+    this.currentDate = {
+      day: date.getDate(),
+      month:
+        date.getMonth() + 1 > 10
+          ? date.getMonth() + 1
+          : `0${date.getMonth() + 1}`,
+      monthName: date.toLocaleString("default", { month: "long" }),
+      year: date.getFullYear(),
+    }
   }
 
-  generateHeaders(doc) {
-    const logoPath = path.join(__dirname, "..", "assets", "logo.png")
+  generateHeaders({ doc }) {
     const logoWidth = 80
     doc
-      .image(logoPath, doc.page.width - logoWidth - 50, 50, {
+      .image("./assets/logo.png", doc.page.width - logoWidth - 50, 50, {
         width: logoWidth,
       })
       .fontSize(21)
       .text("EUR Statement", 50, 50, { align: "left" })
       .fontSize(10)
-      .text(`Generated on: ${`7 Feb 2023`}`, { align: "left" })
+      .text(
+        `Generated on ${this.currentDate.day} ${this.currentDate.monthName} ${this.currentDate.year}`,
+        { align: "left" }
+      )
       .text(`ELYPS SA`, { align: "left" })
   }
 
-  generateAccountHolderDetails(doc) {
-    const beneficiary = this.invoice.beneficiary
+  generateAccountHolderDetails({ doc, accountStatement }) {
+    const account = accountStatement.account
 
     const beginningOfPage = 50
     const endOfPage = 550
@@ -36,20 +49,20 @@ class PdfGenerator {
       .lineTo(endOfPage, this.startPositionY)
       .stroke()
     // -----------------------------------------------------------------------------------
-    const widthOfBenefName = doc.widthOfString(beneficiary.name)
-    const widthOfLine1 = doc.widthOfString(beneficiary.address.line1)
-    const widthOfLine2 = doc.widthOfString(beneficiary.address.line2)
-    const widthOfLine3 = doc.widthOfString(beneficiary.address.line3)
-    const benefNameHeight = doc.heightOfString(beneficiary.name, {
+    const widthOfBenefName = doc.widthOfString(account.holderName)
+    const widthOfLine1 = doc.widthOfString(account.holderAddress.line1)
+    const widthOfLine2 = doc.widthOfString(account.holderAddress.line2)
+    const widthOfLine3 = doc.widthOfString(account.holderAddress.line3)
+    const benefNameHeight = doc.heightOfString(account.holderName, {
       width: widthOfBenefName,
     })
-    const benefLine1Height = doc.heightOfString(beneficiary.address.line1, {
+    const benefLine1Height = doc.heightOfString(account.holderAddress.line1, {
       width: widthOfLine1,
     })
-    const benefLine2Height = doc.heightOfString(beneficiary.address.line1, {
+    const benefLine2Height = doc.heightOfString(account.holderAddress.line2, {
       width: widthOfLine2,
     })
-    const benefLine3Height = doc.heightOfString(beneficiary.address.line3, {
+    const benefLine3Height = doc.heightOfString(account.holderAddress.line3, {
       width: widthOfLine3,
     })
     const componentHeight =
@@ -59,64 +72,160 @@ class PdfGenerator {
       .text(`Beneficiary`, beginningOfPage, 135)
       .fontSize(14)
       .font(BOLD_FONT)
-      .text(beneficiary.name, { width: 250 })
+      .text(account.holderName, { width: 250 })
       .font(NORMAL_FONT)
       .fontSize(12)
-      .text(beneficiary.address.line1, { width: 250 })
-      .text(beneficiary.address.line2, { width: 250 })
-      .text(beneficiary.address.line3, { width: 250 })
+      .text(account.holderAddress.line1, { width: 250 })
+      .text(account.holderAddress.line2, { width: 250 })
+      .text(account.holderAddress.line3, { width: 250 })
 
     doc
       .fontSize(12)
       .font(BOLD_FONT)
-      .text(`IBAN:`, beginningOfPage + 250 + 2.5, 155, {
-        bold: true,
-      })
+      .text(`IBAN:`, beginningOfPage + 250 + 2.5, 155, {})
       .font(BOLD_FONT)
-      .text(`BIC:`, beginningOfPage + 250 + 2.5, 170, {
-        bold: true,
-      })
+      .text(`BIC:`, beginningOfPage + 250 + 2.5, 170, {})
       .font(NORMAL_FONT)
-      .text(`${beneficiary.iban}`, beginningOfPage + 250 + 40, 155, {
+      .text(account.iban, beginningOfPage + 250 + 40, 155, {
         width: 250,
       })
-      .text(`${beneficiary.bic}`, beginningOfPage + 250 + 40, 170, {
+      .text(account.bic, beginningOfPage + 250 + 40, 170, {
         width: 250,
       })
     // -----------------------------------------------------------------------------------
     doc
-      .moveTo(beginningOfPage, this.startPositionY + componentHeight - 20)
-      .lineTo(endOfPage, this.startPositionY + componentHeight - 20)
+      .moveTo(beginningOfPage, this.startPositionY + componentHeight + 5)
+      .lineTo(endOfPage, this.startPositionY + componentHeight + 5)
       .stroke()
   }
 
-  generateTable(doc) {
-    let tableTop = 270
-    const dateX = 50
-    const dateWidth = 90 - 2.5
-    const descriptionX = dateX + dateWidth
-    const descriptionWidth = 200 - 2.5
-    const quantityX = descriptionX + descriptionWidth
-    const quantityWidth = 90 - 2.5
-    const priceX = quantityX + quantityWidth
-    const priceWidth = 90 - 2.5
-    const amountX = priceX + priceWidth
-    const amountWidth = 90 - 2.5
+  generateBalanceSummary({ doc, accountStatement }) {
+    const top = 270
+    const productX = 55
+    const productWidth = 125 - 2.5
+    const openingBalanceX = productX + productWidth
+    const openingBalanceWidth = 100 - 2.5
+    const moneyOutX = openingBalanceX + openingBalanceWidth
+    const moneyOutWidth = 100 - 2.5
+    const moneyInX = moneyOutX + moneyOutWidth
+    const moneyInWidth = 100 - 2.5
+    const closingBalanceX = moneyInX + moneyInWidth
+    const closingBalanceWidth = 100 - 2.5
+
+    doc.fontSize(14).font(BOLD_FONT).text("Balance summary", 55, top)
 
     doc
       .fontSize(10)
       .font(BOLD_FONT)
-      .text("Date", dateX, tableTop, { width: dateWidth, bold: true })
+      .text("Product", productX, top + 40, { width: productWidth })
+      .text("Opening\nbalance", openingBalanceX, top + 40, {
+        width: openingBalanceWidth,
+      })
+      .text("Money out", moneyOutX, top + 40, {
+        width: moneyOutWidth,
+      })
+      .text("Money in", moneyInX, top + 40, { width: moneyInWidth })
+      .text("Closing\nbalance", closingBalanceX, top + 40, {
+        width: closingBalanceWidth,
+      })
+
+    const strokeY = top + 75
+    doc.font(BOLD_FONT).moveTo(50, strokeY).lineTo(550, strokeY).stroke()
+
+    doc
+      .fontSize(10)
+      .font(NORMAL_FONT)
+      .text("Account (E-money)", productX, strokeY + 15, {
+        width: productWidth,
+      })
+      .text(
+        accountStatement.account.openingBalance,
+        openingBalanceX,
+        strokeY + 15,
+        {
+          width: openingBalanceWidth,
+        }
+      )
+      .text(accountStatement.account.moneyOut, moneyOutX, strokeY + 15, {
+        width: moneyOutWidth,
+      })
+      .text(accountStatement.account.moneyIn, moneyInX, strokeY + 15, {
+        width: moneyInWidth,
+      })
+      .text(
+        accountStatement.account.closingBalance,
+        closingBalanceX,
+        strokeY + 15,
+        {
+          width: closingBalanceWidth,
+        }
+      )
+
+    doc.addPage()
+  }
+
+  getTransactionsTitle({ accountStatement }) {
+    const fromDate = new Date(accountStatement.fromDate)
+    const toDate = new Date(accountStatement.toDate)
+    const fromDateFormatted = accountStatement.fromDate
+      ? {
+          day: fromDate.getDate(),
+          month:
+            fromDate.getMonth() + 1 > 10
+              ? fromDate.getMonth() + 1
+              : `0${fromDate.getMonth() + 1}`,
+          monthName: fromDate.toLocaleString("default", { month: "long" }),
+          year: fromDate.getFullYear(),
+        }
+      : undefined
+    const toDateFormatted = accountStatement.toDate
+      ? {
+          day: toDate.getDate(),
+          month:
+            toDate.getMonth() + 1 > 10
+              ? toDate.getMonth() + 1
+              : `0${toDate.getMonth() + 1}`,
+          monthName: toDate.toLocaleString("default", {
+            month: "long",
+          }),
+          year: toDate.getFullYear(),
+        }
+      : undefined
+    const fromDateText = accountStatement.fromDate
+      ? ` from ${fromDateFormatted.day} ${fromDateFormatted.monthName} ${fromDateFormatted.year}`
+      : ""
+    const toDateText = accountStatement.toDate
+      ? ` to ${toDateFormatted.day} ${toDateFormatted.monthName} ${toDateFormatted.year}`
+      : ""
+
+    return `Account transactions${fromDateText}${toDateText}`
+  }
+
+  generateTable({ doc, accountStatement }) {
+    let tableTop = 200
+    const dateX = 55
+    const dateWidth = 95 - 2.5
+    const descriptionX = dateX + dateWidth
+    const descriptionWidth = 255 - 2.5
+    const moneyOutX = descriptionX + descriptionWidth
+    const moneyOutWidth = 95 - 2.5
+    const moneyInX = moneyOutX + moneyOutWidth
+    const moneyInWidth = 95 - 2.5
+
+    const titleText = this.getTransactionsTitle({ accountStatement })
+    doc.fontSize(14).font(BOLD_FONT).text(titleText, 55, 150)
+
+    doc
+      .fontSize(10)
+      .font(BOLD_FONT)
+      .text("Date", dateX, tableTop, { width: dateWidth })
       .text("Description", descriptionX, tableTop, {
         width: descriptionWidth,
-        bold: true,
       })
-      .text("Money out", quantityX, tableTop, {
-        width: quantityWidth,
-        bold: true,
+      .text("Money out", moneyOutX, tableTop, {
+        width: moneyOutWidth,
       })
-      .text("Money in", priceX, tableTop, { width: priceWidth, bold: true })
-      .text("Balance", amountX, tableTop, { width: amountWidth, bold: true })
+      .text("Money in", moneyInX, tableTop, { width: moneyInWidth })
 
     doc
       .font(BOLD_FONT)
@@ -124,28 +233,40 @@ class PdfGenerator {
       .lineTo(550, tableTop + 20)
       .stroke()
 
-    const items = this.invoice.items
+    const operations = accountStatement.operations
     let i = 0
     let positionCounter = 0
-    for (i = 0; i < items.length; i++) {
-      positionCounter += 1
-      const item = items[i]
-      let y = tableTop + 25 + positionCounter * 25
+    for (i = 0; i < operations.length; i++) {
+      const operation = operations[i]
+      let y = tableTop + 40 + positionCounter * 40
       if (y > 680) {
         doc.addPage()
         positionCounter = 0
         tableTop = this.startPositionY
-        y = tableTop + 25 + positionCounter * 25
+        y = tableTop + 40 + positionCounter * 40
       }
 
       doc
         .fontSize(10)
         .font(NORMAL_FONT)
-        .text(item.date, dateX, y, { width: dateWidth })
-        .text(item.description, descriptionX, y, { width: descriptionWidth })
-        .text(item.quantity, quantityX, y, { width: quantityWidth })
-        .text(`$ ${item.price}`, priceX, y, { width: priceWidth })
-        .text(`$ ${item.amount}`, amountX, y, { width: amountWidth })
+        .text(new Date(operation.date).toDateString(), dateX, y, {
+          width: dateWidth,
+        })
+        .text(operation.counterparty.name, descriptionX, y, {
+          width: descriptionWidth,
+        })
+        .fontSize(8)
+        .text(operation.counterparty.iban, descriptionX, y + 12.5, {
+          width: descriptionWidth,
+        })
+        .fontSize(10)
+        .text(operation.moneyOut, moneyOutX, y, { width: moneyOutWidth })
+        .text(operation.moneyIn, moneyInX, y, { width: moneyInWidth })
+      doc
+        .moveTo(50, y + 30)
+        .lineTo(550, y + 30)
+        .stroke()
+      positionCounter += 1
     }
   }
 
@@ -166,7 +287,7 @@ class PdfGenerator {
       )
   }
 
-  globalPagesEdit(doc) {
+  globalPagesEdit({ doc }) {
     const range = doc.bufferedPageRange()
     for (
       let i = range.start;
@@ -176,7 +297,7 @@ class PdfGenerator {
       doc.switchToPage(i)
       let oldTopMargin = doc.page.margins.top
       doc.page.margins.top = 0 //Dumb: Have to remove top margin in order to write into it
-      this.generateHeaders(doc)
+      this.generateHeaders({ doc })
       doc.page.margins.top = oldTopMargin // ReProtect top margin
 
       //Footer: Add page number
@@ -192,27 +313,40 @@ class PdfGenerator {
     }
   }
 
-  generate() {
-    let theOutput = new PDFGenerator({ bufferPages: true })
+  removeFile(pathToFile) {
+    fs.unlinkSync(pathToFile)
+  }
 
-    const fileName = `Invoice_${this.invoice.invoiceNumber}.pdf`
+  async generate({ accountStatement }) {
+    let doc = new PDFDocument({ bufferPages: true })
+
+    const filename = `account-statement_${accountStatement.account.holderName}_elyps_${this.currentDate.year}-${this.currentDate.month}-${this.currentDate.day}.pdf`
 
     // pipe to a writable stream which would save the result into the same directory
-    theOutput.pipe(fs.createWriteStream(fileName))
+    const writeStream = fs.createWriteStream(filename)
+    doc.pipe(writeStream)
 
-    // this.generateHeaders(theOutput)
+    // this.generateHeaders(doc)
 
-    this.generateAccountHolderDetails(theOutput)
+    this.generateAccountHolderDetails({ doc, accountStatement })
 
-    theOutput.moveDown()
+    this.generateBalanceSummary({ doc, accountStatement })
 
-    this.generateTable(theOutput)
+    doc.moveDown()
 
-    // this.generateFooter(theOutput)
+    this.generateTable({ doc, accountStatement })
 
-    this.globalPagesEdit(theOutput)
+    // this.generateFooter(doc)
+
+    this.globalPagesEdit({ doc, accountStatement })
     // write out file
-    theOutput.end()
+    doc.end()
+    await new Promise(resolve => {
+      writeStream.on("finish", async () => {
+        resolve()
+        // this.removeFile(pathToFile)
+      })
+    })
   }
 }
 

@@ -4,154 +4,371 @@ const bodyParser = require("body-parser")
 
 const PdfGenerator = require("./services/pdf-generator")
 
-const invoiceData = {
-  items: [
+const FROM_DATE = "2020-05-01"
+const TO_DATE = "2020-06-01"
+
+const ACCOUNT_STATEMENT = {
+  fromDate: new Date(FROM_DATE).toISOString(),
+  toDate: new Date(TO_DATE).toISOString(),
+  account: {
+    holderName: "Joe Doe",
+    iban: "IBAN",
+    bic: "BIC",
+    openingBalance: 0,
+    closingBalance: 0,
+    moneyOut: 10000,
+    moneyIn: 10000,
+    holderAddress: {
+      line1: "Boulevard 10",
+      line2: "1000 Bruxelles",
+      line3: "Belgium",
+    },
+  },
+  operations: [
     {
-      date: "27 Jul. 2022",
-      description: "From Lord Services",
-      quantity: 2,
-      price: 3000,
-      amount: 6000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Joe Doe",
+      },
+      moneyOut: 1200,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "To Lord Services",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Joe Doe",
+      },
+      moneyOut: undefined,
+      moneyIn: 9000,
     },
     {
-      date: "27 Jul. 2022",
-      description: "From Lord Services",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Amazon",
+      },
+      moneyOut: 1800,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "From Lord Services",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Jack Sparrow",
+        iban: "IBAN",
+      },
+      moneyOut: 5000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "USDC to EUR",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Tom Jerry",
+      },
+      moneyOut: undefined,
+      moneyIn: 1000,
     },
     {
-      date: "27 Jul. 2022",
-      description: "Outgoing transfer fee",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "Manual order fee",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "Manual order fee",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "To Lord Services",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "To Lord Services",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "To Lord Services",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "From Lord Services",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "From Lord Services",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "USDC to EUR",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "Outgoing transfer fee",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "Manual order fee",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "To Lord Services",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "Manual order fee",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "To Lord Services",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "Outgoing Transfer fee",
-      quantity: 1,
-      price: 2000,
-      amount: 2000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
     {
-      date: "27 Jul. 2022",
-      description: "Manual order fee",
-      quantity: 1,
-      price: 50000,
-      amount: 50000,
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
+    },
+    {
+      date: "2023-04-27T10:40:26.096Z",
+      counterparty: {
+        name: "Olivier",
+      },
+      moneyOut: 2000,
+      moneyIn: undefined,
     },
   ],
   invoiceNumber: 1234,
@@ -166,9 +383,12 @@ const invoiceData = {
     bic: "PAYRGB21XXX",
   },
 }
+async function generatePdf() {
+  const pdfGenerator = new PdfGenerator()
+  await pdfGenerator.generate({ accountStatement: ACCOUNT_STATEMENT })
+}
 
-const pdfGenerator = new PdfGenerator(invoiceData)
-pdfGenerator.generate()
+generatePdf()
 
 const notifications = require("./routes/notifications")
 const app = express()
