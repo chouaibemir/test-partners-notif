@@ -3,6 +3,7 @@ const morgan = require("morgan")
 const morganBody = require("morgan-body")
 const bodyParser = require("body-parser")
 const multer = require("multer")
+const upload = multer({ dest: "uploads/" })
 
 const notifications = require("./routes/notifications")
 const app = express()
@@ -17,7 +18,7 @@ app.get("/", function (req, res) {
 app.use("/notifications", notifications)
 
 app.post("/upload", upload.none(), (req, res) => {
-  res.status(200).json("ok")
+  res.sendStatus(200)
 })
 
 app.listen(3000, "0.0.0.0", function () {
