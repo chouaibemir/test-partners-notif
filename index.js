@@ -18,6 +18,8 @@ app.get("/", function (req, res) {
 app.use("/notifications", notifications)
 
 app.post("/upload", upload.none(), (req, res) => {
+  console.log("HEADERS", JSON.stringify(req.headers))
+  console.log("BODY", req.body)
   res.sendStatus(200)
 })
 
